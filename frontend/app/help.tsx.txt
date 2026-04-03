@@ -1,0 +1,275 @@
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  StyleSheet,
+  Linking,
+  ActivityIndicator,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { getHelpResources, type HelpResource } from '../utils/api';
+
+export default function HelpScreen() {
+  const router = useRouter();
+  const [resources, setResources] = useState<HelpResource[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadResources();
+  }, []);
+
+  const loadResources = async () => {
+    try {
+      const data = await getHelpResources();
+      setResources(data);
+    } catch (error) {
+      console.error('Error loading resources:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCall = (telefono: string) => {
+    Linking.openURL(`tel:${telefono}`);
+  };
+
+  const getIconName = (tipo: string): any => {
+    switch (tipo) {
+      case 'emergencia':
+        return 'warning';
+      case 'violencia':
+        return 'shield';
+      case 'adicciones':
+        return 'medical';
+      case 'salud_mental':
+        return 'heart';
+      default:
+        return 'information-circle';
+    }
+  };
+
+  const getIconColor = (tipo: string) => {
+    switch (tipo) {
+      case 'emergencia':
+        return '#dc2626';
+      case 'violencia':
+        return '#7c3aed';
+      case 'adicciones':
+        return '#059669';
+      case 'salud_mental':
+        return '#2563eb';
+      default:
+        return '#6b7280';
+    }
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color="#374151" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Ayuda Urgente</Text>
+        <View style={{ width: 24 }} />
+      </View>
+
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        <View style={styles.warningBox}>
+          <Ionicons name="information-circle" size={32} color="#dc2626" />
+          <Text style={styles.warningTitle}>¿Necesitas ayuda inmediata?</Text>
+          <Text style={styles.warningText}>
+            Si tu hijo/a o alguien está en peligro inmediato, llamá al 911 o acudí a la guardia más cercana.
+          </Text>
+        </View>
+
+        <Text style={styles.sectionTitle}>Recursos disponibles</Text>
+
+        {loading ? (
+          <ActivityIndicator size="large" color="#6366f1" style={{ marginTop: 40 }} />
+        ) : (
+          resources.map((resource, index) => (
+            <View key={index} style={styles.resourceCard}>
+              <View style={styles.resourceHeader}>
+                <View
+                  style={[
+                    styles.iconContainer,
+                    { backgroundColor: getIconColor(resource.tipo) + '20' },
+                  ]}
+                >
+                  <Ionicons
+                    name={getIconName(resource.tipo)}
+                    size={24}
+                    color={getIconColor(resource.tipo)}
+                  />
+                </View>
+                <View style={styles.resourceInfo}>
+                  <Text style={styles.resourceName}>{resource.nombre}</Text>
+                  {resource.telefono && (
+                    <Text style={styles.resourcePhone}>{resource.telefono}</Text>
+                  )}
+                </View>
+              </View>
+              <Text style={styles.resourceDescription}>{resource.descripcion}</Text>
+              {resource.telefono && (
+                <TouchableOpacity
+                  style={styles.callButton}
+                  onPress={() => handleCall(resource.telefono!)}
+                >
+                  <Ionicons name="call" size={18} color="#fff" />
+                  <Text style={styles.callButtonText}>Llamar ahora</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          ))
+        )}
+
+        <View style={styles.infoBox}>
+          <Text style={styles.infoTitle}>Recordá</Text>
+          <Text style={styles.infoText}>
+            • No estás solo/a en esto{'\n'}
+            • Buscar ayuda es un acto de amor y responsabilidad{'\n'}
+            • Los profesionales están para acompañarte{'\n'}
+            • Cuidarte vos también es cuidar a tu hijo/a
+          </Text>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f9fafb',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 20,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  backButton: {
+    padding: 4,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1f2937',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 20,
+    paddingBottom: 40,
+  },
+  warningBox: {
+    backgroundColor: '#fee2e2',
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 24,
+    borderWidth: 2,
+    borderColor: '#dc2626',
+    alignItems: 'center',
+  },
+  warningTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#dc2626',
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  warningText: {
+    fontSize: 15,
+    color: '#7f1d1d',
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 16,
+  },
+  resourceCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  resourceHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  iconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  resourceInfo: {
+    flex: 1,
+  },
+  resourceName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 4,
+  },
+  resourcePhone: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#6366f1',
+  },
+  resourceDescription: {
+    fontSize: 14,
+    color: '#6b7280',
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  callButton: {
+    backgroundColor: '#6366f1',
+    borderRadius: 8,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  callButtonText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  infoBox: {
+    backgroundColor: '#dbeafe',
+    borderRadius: 12,
+    padding: 20,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#3b82f6',
+  },
+  infoTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1e40af',
+    marginBottom: 8,
+  },
+  infoText: {
+    fontSize: 14,
+    color: '#1e3a8a',
+    lineHeight: 22,
+  },
+});
