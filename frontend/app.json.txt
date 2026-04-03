@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "name": "PadresLab",
+    "slug": "padreslab",
+    "scheme": "padreslab",
+    "platforms": ["ios", "android", "web"],
+    "web": {
+      "bundler": "metro"
+    },
+    "plugins": ["expo-router"]
+  }
+}
