@@ -1,0 +1,235 @@
+import React, { useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  StyleSheet,
+  TextInput,
+  ActivityIndicator,
+  Alert,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { analyzeSituation, getFrequentSituations, type FrequentSituation } from '../utils/api';
+
+export default function IndexScreen() {
+  const router = useRouter();
+  const [text, setText] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [situations, setSituations] = useState<FrequentSituation[]>([]);
+  const [loadingSituations, setLoadingSituations] = useState(true);
+
+  useEffect(() => {
+    loadSituations();
+  }, []);
+
+  const loadSituations = async () => {
+    try {
+      const data = await getFrequentSituations();
+      setSituations(data);
+    } catch (error) {
+      console.error('Error loading situations:', error);
+    } finally {
+      setLoadingSituations(false);
+    }
+  };
+
+  const handleAnalyze = async () => {
+    if (!text.trim()) {
+      Alert.alert('Atención', 'Por favor escribí qué está pasando');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await analyzeSituation({ text });
+      router.push({
+        pathname: '/result',
+        params: { responseData: JSON.stringify(response) },
+      });
+    } catch (error) {
+      Alert.alert('Error', 'No pudimos analizar la situación');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const useSituation = (description: string) => {
+    setText(description);
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        <Text style={styles.title}>PadresLab</Text>
+        <Text style={styles.subtitle}>
+          Una guía privada para acompañarte en conversaciones difíciles con adolescentes.
+        </Text>
+
+        <View style={styles.inputCard}>
+          <Text style={styles.label}>¿Qué está pasando?</Text>
+          <TextInput
+            style={styles.input}
+            multiline
+            numberOfLines={5}
+            value={text}
+            onChangeText={setText}
+            placeholder="Ej: Mi hijo está distante, se encierra en su cuarto y no quiere hablar..."
+            placeholderTextColor="#9ca3af"
+            textAlignVertical="top"
+          />
+
+          <TouchableOpacity
+            style={[styles.analyzeButton, loading && styles.buttonDisabled]}
+            onPress={handleAnalyze}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <>
+                <Ionicons name="sparkles" size={18} color="#fff" />
+                <Text style={styles.analyzeButtonText}>Analizar</Text>
+              </>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.helpButton} onPress={() => router.push('/help')}>
+            <Text style={styles.helpButtonText}>Necesito ayuda urgente</Text>
+          </TouchableOpacity>
+        </View>
+
+        <Text style={styles.sectionTitle}>Situaciones frecuentes</Text>
+
+        {loadingSituations ? (
+          <ActivityIndicator size="large" color="#6366f1" style={{ marginTop: 20 }} />
+        ) : (
+          situations.map((item) => (
+            <TouchableOpacity
+              key={item.id}
+              style={styles.situationCard}
+              onPress={() => useSituation(item.descripcion)}
+            >
+              <Text style={styles.situationEmoji}>{item.emoji}</Text>
+              <View style={styles.situationContent}>
+                <Text style={styles.situationTitle}>{item.titulo}</Text>
+                <Text style={styles.situationDescription}>{item.descripcion}</Text>
+              </View>
+            </TouchableOpacity>
+          ))
+        )}
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#f9fafb' },
+  scrollView: { flex: 1 },
+  scrollContent: { padding: 20, paddingBottom: 40 },
+  title: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#6b7280',
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 24,
+  },
+  inputCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  label: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1f2937',
+    marginBottom: 12,
+  },
+  input: {
+    backgroundColor: '#f9fafb',
+    borderRadius: 12,
+    padding: 16,
+    minHeight: 120,
+    fontSize: 15,
+    color: '#1f2937',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    marginBottom: 16,
+  },
+  analyzeButton: {
+    backgroundColor: '#6366f1',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    marginBottom: 12,
+  },
+  analyzeButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  helpButton: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 14,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#ef4444',
+  },
+  helpButtonText: {
+    color: '#ef4444',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  buttonDisabled: {
+    opacity: 0.6,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 16,
+  },
+  situationCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  situationEmoji: {
+    fontSize: 28,
+    marginRight: 12,
+  },
+  situationContent: {
+    flex: 1,
+  },
+  situationTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1f2937',
+    marginBottom: 4,
+  },
+  situationDescription: {
+    fontSize: 14,
+    color: '#6b7280',
+  },
+});
