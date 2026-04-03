@@ -31,33 +31,40 @@ export default function IndexScreen() {
       setSituations(data);
     } catch (error) {
       console.error('Error loading situations:', error);
+      Alert.alert('Error', 'No pudimos cargar las situaciones frecuentes');
     } finally {
       setLoadingSituations(false);
     }
   };
 
-  const handleAnalyze = async () => {
-    if (!text.trim()) {
+  const goToResult = async (inputText: string) => {
+    if (!inputText.trim()) {
       Alert.alert('Atención', 'Por favor escribí qué está pasando');
       return;
     }
 
     setLoading(true);
     try {
-      const response = await analyzeSituation({ text });
+      const response = await analyzeSituation({ text: inputText });
       router.push({
         pathname: '/result',
         params: { responseData: JSON.stringify(response) },
       });
     } catch (error) {
+      console.error('Error analyzing situation:', error);
       Alert.alert('Error', 'No pudimos analizar la situación');
     } finally {
       setLoading(false);
     }
   };
 
-  const useSituation = (description: string) => {
+  const handleAnalyze = async () => {
+    await goToResult(text);
+  };
+
+  const useSituation = async (description: string) => {
     setText(description);
+    await goToResult(description);
   };
 
   return (
@@ -70,6 +77,7 @@ export default function IndexScreen() {
 
         <View style={styles.inputCard}>
           <Text style={styles.label}>¿Qué está pasando?</Text>
+
           <TextInput
             style={styles.input}
             multiline
@@ -111,6 +119,7 @@ export default function IndexScreen() {
               key={item.id}
               style={styles.situationCard}
               onPress={() => useSituation(item.descripcion)}
+              disabled={loading}
             >
               <Text style={styles.situationEmoji}>{item.emoji}</Text>
               <View style={styles.situationContent}>
@@ -120,15 +129,30 @@ export default function IndexScreen() {
             </TouchableOpacity>
           ))
         )}
+
+        {loading && (
+          <View style={styles.loadingOverlay}>
+            <ActivityIndicator size="large" color="#6366f1" />
+            <Text style={styles.loadingText}>Analizando situación...</Text>
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f9fafb' },
-  scrollView: { flex: 1 },
-  scrollContent: { padding: 20, paddingBottom: 40 },
+  container: {
+    flex: 1,
+    backgroundColor: '#f9fafb',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 20,
+    paddingBottom: 40,
+  },
   title: {
     fontSize: 32,
     fontWeight: 'bold',
@@ -229,6 +253,15 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   situationDescription: {
+    fontSize: 14,
+    color: '#6b7280',
+  },
+  loadingOverlay: {
+    marginTop: 20,
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
     fontSize: 14,
     color: '#6b7280',
   },
